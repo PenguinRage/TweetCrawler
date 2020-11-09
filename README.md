@@ -31,4 +31,4 @@ When working on this challenge, I was also considering using Selinium and Phanto
 
 From this point on I rolled what I got from the iframe up into my own objects to keep things structured nicely. 
 
-For this challenge alone, I also didn't do much for Error Handling, testing or moving classes out into seperate python files and folders to structure the project in a neater way. Ideally I would by my behaviour want to have these things included.
+For this challenge alone, I also didn't do much for Error Handling, testing or moving classes out into seperate python files and folders to structure the project in a neater way. Ideally I would want to have these things included.
