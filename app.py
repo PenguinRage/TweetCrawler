@@ -1,3 +1,4 @@
+import iso8601 as iso8601
 from bs4 import BeautifulSoup
 import requests
 from time import sleep
@@ -5,7 +6,7 @@ from dateutil.parser import *
 import sys
 import flask
 from flask import jsonify
-from multiprocessing import Process
+import threading
 import logging
 
 
@@ -33,8 +34,8 @@ class tweetCrawler:
 
     def monitor(self):
         while True:
-            # Wait 10 min
-            sleep(600)
+            # Wait 10 secs
+            sleep(10)
             tweets = self.get_tweets()
             last_tweet = self.tweets[0]
 
@@ -59,7 +60,7 @@ class tweetCrawler:
         tweet_list =[]
         for count, item in enumerate(tweets):
 
-            tweet_list.append(Tweet(item.get_text(), self.get_date_from_string(timestamps[count]['datetime'])))
+            tweet_list.append(Tweet(item.get_text(), iso8601.parse_date(timestamps[count]['datetime'])))
 
         return tweet_list
 
@@ -88,14 +89,15 @@ class tweetCrawler:
         self.print_tweets(self.tweets)
 
 
-class processClass:
+class processThread:
 
     def __init__(self, bot):
-        p = Process(target=self.run, args=(bot,))
+        p = threading.Thread(target=self.run, args=(bot,))
         p.daemon = True
         p.start()
 
     def run(self, bot):
+        sleep(0.5)
         bot.print_intro()
         bot.monitor()
 
@@ -118,7 +120,8 @@ def tweets():
     return jsonify(tweets=[tweet.serialize() for tweet in tweetCrawler.tweets])
 
 
+
 if __name__ == "__main__":
-    processClass(tweetCrawler)
+    processThread(tweetCrawler)
     app.run(host='0.0.0.0', threaded=True)
 
