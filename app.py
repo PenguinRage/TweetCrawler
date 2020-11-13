@@ -6,8 +6,12 @@ from dateutil.parser import *
 import sys
 import flask
 from flask import jsonify
+from flask import request
 import threading
 import logging
+import datetime
+import pytz
+tz = pytz.UTC
 
 
 class Tweet:
@@ -36,7 +40,7 @@ class tweetCrawler:
         while True:
             # Wait 10 secs
             sleep(10)
-            tweets = self.get_tweets()
+            self.tweets = self.get_tweets()
             last_tweet = self.tweets[0]
 
             new_tweets = []
@@ -54,25 +58,17 @@ class tweetCrawler:
         url = 'https://syndication.twitter.com/timeline/profile?screen_name=' + self.handle
         r = requests.get(url)
         bs = BeautifulSoup(r.json()['body'], 'html.parser')
-        tweets = bs.find_all('p', {'class': 'timeline-Tweet-text'})
+        tl = bs.find_all('p', {'class': 'timeline-Tweet-text'})
         timestamps = bs.find_all('time', {'class': 'dt-updated'})
-
-        tweet_list =[]
-        for count, item in enumerate(tweets):
-
+        tweet_list = []
+        for count, item in enumerate(tl):
             tweet_list.append(Tweet(item.get_text(), iso8601.parse_date(timestamps[count]['datetime'])))
 
         return tweet_list
 
     @staticmethod
-    def get_date_from_string(s):
-        d = parse(s)
-        return d
-
-    @staticmethod
-    def print_tweets(tweets):
-
-        for tweet in reversed(tweets):
+    def print_tweets(tweet_list):
+        for tweet in reversed(tweet_list):
             tweet.print_tweet()
 
     def print_intro(self):
@@ -82,11 +78,19 @@ class tweetCrawler:
     |_   _|_ __ _____ ___| |_ / __|_ _ __ ___ __ _| |___ _ _ 
       | | \ V  V / -_) -_)  _| (__| '_/ _` \ V  V / / -_) '_|
       |_|  \_/\_/\___\___|\__|\___|_| \__,_|\_/\_/|_\___|_|  
-      Usage: ./tweetercrawler (username)
+      Usage: ./tweetcrawler (username)
       Api can be found on 0.0.0.0/5000""")
 
         print("_____________________________________________________________________")
         self.print_tweets(self.tweets)
+
+    @staticmethod
+    def get_date_from_string(s):
+        d = parse(s)
+        return d
+
+    def get_tweets_after_date(self, ts):
+        return [tweet for tweet in self.tweets if tweet.timestamp >= pytz.utc.localize(ts)]
 
 
 class processThread:
@@ -96,7 +100,8 @@ class processThread:
         p.daemon = True
         p.start()
 
-    def run(self, bot):
+    @staticmethod
+    def run(bot):
         sleep(0.5)
         bot.print_intro()
         bot.monitor()
@@ -110,18 +115,23 @@ app = flask.Flask(__name__)
 log = logging.getLogger('werkzeug')
 log.disabled = True
 
+
 @app.route('/', methods=['GET'])
 def home():
     return "<h1>Tweet Crawler API</h1><p>This is Tweet Crawler API, tweets can be found in /tweets.</p>"
 
 
-@app.route('/tweets')
+@app.route('/tweets', methods=['GET'])
 def tweets():
-    return jsonify(tweets=[tweet.serialize() for tweet in tweetCrawler.tweets])
+    timestamp = request.args.get('timestamp')
 
+    if timestamp is None:
+        return jsonify(tweets=[tweet.serialize() for tweet in tweetCrawler.tweets])
+    else:
+        ts = datetime.datetime.strptime(timestamp, '%a, %d %b %Y %H:%M:%S GMT')
+        return jsonify(tweets=[tweet.serialize() for tweet in tweetCrawler.get_tweets_after_date(ts)])
 
 
 if __name__ == "__main__":
     processThread(tweetCrawler)
     app.run(host='0.0.0.0', threaded=True)
-
