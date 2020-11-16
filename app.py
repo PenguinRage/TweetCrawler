@@ -41,12 +41,12 @@ class tweetCrawler:
         while True:
             # Wait 10 secs
             sleep(10)
-            self.tweets = self.get_tweets()
+            tweets_list = self.get_tweets()
             last_tweet = self.tweets[0]
 
             new_tweets = []
 
-            for tweet in tweets:
+            for tweet in tweets_list:
                 if last_tweet.timestamp == tweet.timestamp:
                     break
                 else:
