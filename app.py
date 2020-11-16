@@ -40,7 +40,7 @@ class tweetCrawler:
     def monitor(self):
         while True:
             # Wait 10 secs
-            sleep(10)
+            sleep(300)
             tweets_list = self.get_tweets()
             last_tweet = self.tweets[0]
 
